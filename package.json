@@ -1,0 +1,10 @@
+{
+  "name": "abernode-server",
+  "version": "0.1.0",
+  "description": "Server for abernode",
+  "main": "src/index.js",
+  "repository": "git@github.com:d2emon/abernode-server.git",
+  "author": "Dmitry Kutsenko <d2emonium@gmail.com>",
+  "license": "GPL-3.0",
+  "private": true
+}
