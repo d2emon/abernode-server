@@ -21,6 +21,67 @@ var chknolog = vars => new Promise((resolve, reject) => {
   else resolve(true)
 })
 
+var chkbnid = (user) => new Promise((resolve, reject) => {
+  /* Check to see if UID in banned list */
+  config.BANNED.forEach(item => {
+    if (!item) return
+    if (item.toLowerCase() === user.toLowerCase()) {
+      reject('I\'m sorry- that userid has been banned from the Game\n')
+      return
+    }
+  })
+  resolve(user)
+})
+
+var testUsername = user => new Promise((resolve, reject) => {
+  console.log('USER IS ' + JSON.stringify(user.username))
+  if (!user.username) {
+    reject('By what name shall I call you ?')
+    return
+  }
+  user.username = user.username.slice(0, 15)
+  /**
+   * Check for legality of names
+   */
+  if (!user.username) {
+    reject('By what name shall I call you ?')
+    return
+  }
+  if (any('.', user.username)) {
+    reject('Illegal characters in user name')
+    return
+  }
+  user.username = user.username.trim()
+  user.username = scan(user.username, 0, ' ', '')
+
+  if (!user.username) {
+    reject('By what name shall I call you ?')
+    return
+  }
+  if (!chkname(user.username)) {
+    reject('By what name shall I call you ?')
+    return
+  }
+  let usrnam = user.username
+  if (!validname(usrnam)) {
+    reject({ id: 5, msg: 'Bye Bye' })
+    return
+  }
+
+  resolve(true)
+  /*
+  // Password checking
+  logpass(user).then(response => {
+    console.log(chalk.magenta('LOGPASS\t') +
+      chalk.yellow(response))
+    resolve(response)
+  }).catch(error => {
+    // console.error(chalk.red('Username Error:\t' + JSON.stringify(error)))
+    reject(error)
+  })
+  */
+})
+
 module.exports = {
   testhost: host => new Promise((resolve, reject) => {
     Promise.all([
@@ -49,6 +110,30 @@ module.exports = {
       resolve(response)
     }).catch(error => {
       resolve(false)
+    })
+  }),
+  /* Does all the login stuff */
+  login: vars => new Promise((resolve, reject) => {
+    /* The whole login system is called from this */
+    console.log('LOGGING IN AS ' + JSON.stringify(vars.username))
+    // Check if banned first
+    chkbnid('' + vars.uid).then(response => {
+      // Get the user name
+      console.log(JSON.stringify(vars.uid) + ' IS NOT BANNED')
+      return testUsername(vars)
+    }).then(response => {
+      console.log('RESPONSE')
+      console.log(response)
+      resolve(response)
+    }).catch(error => {
+      console.log('ERROR')
+      console.error(error)
+      reject({
+        username: true,
+        password: false,
+        error
+      })
+      // user = getkbd().slice(0, 15)
     })
   })
 }

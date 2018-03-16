@@ -29,4 +29,20 @@ router.get('/stats', (req, res, next) => {
   })
 })
 
+router.post('/login', (req, res, next) => {
+  console.log(req.body)
+  Promise.all([
+    // utils.testhost(req.query.host),
+    utils.testhost(req.hostname),
+    utils.login(req.body)
+  ]).then(response => {
+    res.setHeader('Content-Type', 'application/json')
+    res.send(JSON.stringify(response[1]))
+  }).catch(error => {
+    console.log(error)
+    // reject(error)
+    res.status(403).send(JSON.stringify(error))
+  })
+})
+
 module.exports = router
