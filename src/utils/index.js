@@ -3,6 +3,14 @@ const file = require('../file')
 const filenames = require('../file/filenames')
 const config = require('../config')
 
+function any (ch, str) { return false }
+function scan (input, start, skips, stop) { return input }
+function validname (name) { return true }
+
+function chkname(user) {
+  return /^[a-z]{3,8}$/.test(user.toLowerCase())
+}
+
 /**
  * Check we are running on the correct host
  * see the notes about the use of flock();
@@ -36,7 +44,11 @@ var chkbnid = (user) => new Promise((resolve, reject) => {
 var testUsername = user => new Promise((resolve, reject) => {
   console.log('USER IS ' + JSON.stringify(user.username))
   if (!user.username) {
-    reject('By what name shall I call you ?')
+    reject({
+      username: false,
+      password: false,
+      error: 'By what name shall I call you ?'
+    })
     return
   }
   user.username = user.username.slice(0, 15)
@@ -44,26 +56,47 @@ var testUsername = user => new Promise((resolve, reject) => {
    * Check for legality of names
    */
   if (!user.username) {
-    reject('By what name shall I call you ?')
+    reject({
+      username: false,
+      password: false,
+      error: 'By what name shall I call you ?'
+    })
     return
   }
   if (any('.', user.username)) {
-    reject('Illegal characters in user name')
+    reject({
+      username: false,
+      password: false,
+      error: 'Illegal characters in user name'
+    })
     return
   }
   user.username = user.username.trim()
   user.username = scan(user.username, 0, ' ', '')
 
   if (!user.username) {
-    reject('By what name shall I call you ?')
+    reject({
+      username: false,
+      password: false,
+      error: 'By what name shall I call you ?'
+    })
     return
   }
   if (!chkname(user.username)) {
-    reject('By what name shall I call you ?')
+    reject({
+      username: false,
+      password: false,
+      error: 'By what name shall I call you ?'
+    })
     return
   }
   let usrnam = user.username
   if (!validname(usrnam)) {
+    reject({
+      username: false,
+      password: false,
+      error: 'By what name shall I call you ?'
+    })
     reject({ id: 5, msg: 'Bye Bye' })
     return
   }
@@ -122,17 +155,9 @@ module.exports = {
       console.log(JSON.stringify(vars.uid) + ' IS NOT BANNED')
       return testUsername(vars)
     }).then(response => {
-      console.log('RESPONSE')
-      console.log(response)
       resolve(response)
     }).catch(error => {
-      console.log('ERROR')
-      console.error(error)
-      reject({
-        username: true,
-        password: false,
-        error
-      })
+      reject(error)
       // user = getkbd().slice(0, 15)
     })
   })
