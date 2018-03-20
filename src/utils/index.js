@@ -45,6 +45,7 @@ var testUsername = user => new Promise((resolve, reject) => {
   console.log('USER IS ' + JSON.stringify(user.username))
   if (!user.username) {
     reject({
+      isNew: false,
       username: false,
       password: false,
       error: 'By what name shall I call you ?'
@@ -57,6 +58,7 @@ var testUsername = user => new Promise((resolve, reject) => {
    */
   if (!user.username) {
     reject({
+      isNew: false,
       username: false,
       password: false,
       error: 'By what name shall I call you ?'
@@ -65,6 +67,7 @@ var testUsername = user => new Promise((resolve, reject) => {
   }
   if (any('.', user.username)) {
     reject({
+      isNew: false,
       username: false,
       password: false,
       error: 'Illegal characters in user name'
@@ -76,6 +79,7 @@ var testUsername = user => new Promise((resolve, reject) => {
 
   if (!user.username) {
     reject({
+      isNew: false,
       username: false,
       password: false,
       error: 'By what name shall I call you ?'
@@ -84,6 +88,7 @@ var testUsername = user => new Promise((resolve, reject) => {
   }
   if (!chkname(user.username)) {
     reject({
+      isNew: false,
       username: false,
       password: false,
       error: 'By what name shall I call you ?'
@@ -93,17 +98,21 @@ var testUsername = user => new Promise((resolve, reject) => {
   let usrnam = user.username
   if (!validname(usrnam)) {
     reject({
+      isNew: false,
       username: false,
       password: false,
       error: 'By what name shall I call you ?'
     })
-    reject({ id: 5, msg: 'Bye Bye' })
     return
   }
-
   resolve(true)
+})
+
+// Password checking
+var testPassword = user => new Promise((resolve, reject) => {
+  console.log('PASSWORD IS ' + JSON.stringify(user.password))
+  let newUser = true
   /*
-  // Password checking
   logpass(user).then(response => {
     console.log(chalk.magenta('LOGPASS\t') +
       chalk.yellow(response))
@@ -113,6 +122,48 @@ var testUsername = user => new Promise((resolve, reject) => {
     reject(error)
   })
   */
+
+  if (any('.', user.password)) {
+    reject({
+      isNew: newUser,
+      username: user.username,
+      password: false,
+      error: 'Illegal character in password'
+    })
+    return
+  }
+  if (!user.password) reject({
+    isNew: newUser,
+    username: user.username,
+    password: false,
+    error: ''
+  })
+  let uid = user.username
+  let pwd = user.password
+  let block = JSON.stringify(uid) + '.' + pwd + '....'
+
+  console.log(JSON.stringify(user))
+  console.log(chalk.yellow(block))
+
+  file.requestOpenAppend(PFL, true).then(response => {
+    let lump = qcrypt(block, block.length)
+    block = lump
+    return file.requestPrint(response, block + '\n')
+  }).then(response => {
+    file.requestClose(response)
+    user.block = block
+    user.pfl = response
+    user.isNew = newUser
+    resolve(user)
+  }).catch(error => {
+    console.log('New User Error' + JSON.stringify(error))
+    reject({
+      isNew: newUser,
+      username: user.username,
+      password: user.password,
+      error: 'No persona file....'
+    })
+  })
 })
 
 module.exports = {
@@ -154,6 +205,8 @@ module.exports = {
       // Get the user name
       console.log(JSON.stringify(vars.uid) + ' IS NOT BANNED')
       return testUsername(vars)
+    }).then(response => {
+      return testPassword(vars)
     }).then(response => {
       resolve(response)
     }).catch(error => {
