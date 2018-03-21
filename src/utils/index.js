@@ -1,4 +1,5 @@
 'use strict'
+const chalk = require('chalk')
 const file = require('../file')
 const filenames = require('../file/filenames')
 const config = require('../config')
@@ -6,10 +7,25 @@ const config = require('../config')
 function any (ch, str) { return false }
 function scan (input, start, skips, stop) { return input }
 function validname (name) { return true }
+function logscan (uid, block) { return false }
+function qcrypt(block, length) {
+  console.log('QCRYPT(' + block + ', *"", ' + length + ')')
+  return block
+}
 
 function chkname(user) {
   return /^[a-z]{3,8}$/.test(user.toLowerCase())
 }
+
+var listfl = (filename) => new Promise((resolve, reject) => {
+  file.requestOpenRead(filename, true).then(response => {
+    return file.requestReadLines(response)
+  }).then(response => {
+    resolve({ motd: response })
+  }).catch(error => {
+    reject('[Cannot Find -> ' + filename + ']')
+  })
+})
 
 /**
  * Check we are running on the correct host
@@ -41,11 +57,46 @@ var chkbnid = (user) => new Promise((resolve, reject) => {
   resolve(user)
 })
 
+
+/* Main login code */
+var logpass = username => new Promise((resolve, reject) => {
+  let block = ''
+  let a = logscan(username, block)
+  let pwd = username // save for new user
+  if (a) {
+    username = scan(block, 0, '', '.')
+    pwd = scan(block, username + 1, '', '.')
+    let tries = 0
+    resolve({
+      new: false,
+      username:username,
+      msg: '\nThis persona already exists, what is the password ?\n*'
+    })
+    // pastry:
+    file.flush('stdout')
+    gepass(block)
+    console.info('\n')
+    if (block != pwd) {
+      if (tries < 2) {
+        tries++
+        // goto pastry
+      } else reject('\nNo!\n\n')
+    }
+  } else {
+    resolve({
+      new: true,
+      username: username,
+      msg: 'Creating new persona...'
+    })
+  }
+})
+
 var testUsername = user => new Promise((resolve, reject) => {
   console.log('USER IS ' + JSON.stringify(user.username))
   if (!user.username) {
     reject({
       isNew: false,
+      uid: user.uid,
       username: false,
       password: false,
       error: 'By what name shall I call you ?'
@@ -59,6 +110,7 @@ var testUsername = user => new Promise((resolve, reject) => {
   if (!user.username) {
     reject({
       isNew: false,
+      uid: user.uid,
       username: false,
       password: false,
       error: 'By what name shall I call you ?'
@@ -68,6 +120,7 @@ var testUsername = user => new Promise((resolve, reject) => {
   if (any('.', user.username)) {
     reject({
       isNew: false,
+      uid: user.uid,
       username: false,
       password: false,
       error: 'Illegal characters in user name'
@@ -80,6 +133,7 @@ var testUsername = user => new Promise((resolve, reject) => {
   if (!user.username) {
     reject({
       isNew: false,
+      uid: user.uid,
       username: false,
       password: false,
       error: 'By what name shall I call you ?'
@@ -89,6 +143,7 @@ var testUsername = user => new Promise((resolve, reject) => {
   if (!chkname(user.username)) {
     reject({
       isNew: false,
+      uid: user.uid,
       username: false,
       password: false,
       error: 'By what name shall I call you ?'
@@ -99,6 +154,7 @@ var testUsername = user => new Promise((resolve, reject) => {
   if (!validname(usrnam)) {
     reject({
       isNew: false,
+      uid: user.uid,
       username: false,
       password: false,
       error: 'By what name shall I call you ?'
@@ -112,6 +168,14 @@ var testUsername = user => new Promise((resolve, reject) => {
 var testPassword = user => new Promise((resolve, reject) => {
   console.log('PASSWORD IS ' + JSON.stringify(user.password))
   let newUser = true
+  resolve({
+    isNew: newUser,
+    uid: user.uid,
+    username: user.username,
+    password: false
+  })
+  return
+
   /*
   logpass(user).then(response => {
     console.log(chalk.magenta('LOGPASS\t') +
@@ -126,6 +190,7 @@ var testPassword = user => new Promise((resolve, reject) => {
   if (any('.', user.password)) {
     reject({
       isNew: newUser,
+      uid: user.uid,
       username: user.username,
       password: false,
       error: 'Illegal character in password'
@@ -134,6 +199,7 @@ var testPassword = user => new Promise((resolve, reject) => {
   }
   if (!user.password) reject({
     isNew: newUser,
+    uid: user.uid,
     username: user.username,
     password: false,
     error: ''
@@ -159,11 +225,28 @@ var testPassword = user => new Promise((resolve, reject) => {
     console.log('New User Error' + JSON.stringify(error))
     reject({
       isNew: newUser,
+      uid: user.uid,
       username: user.username,
       password: user.password,
       error: 'No persona file....'
     })
   })
+})
+
+var logRecord = str => new Promise((resolve, reject) => {
+  console.log(chalk.blue(str)) // syslog
+  resolve(true)
+})
+
+var logEnter = user => new Promise((resolve, reject) => {
+  /* Log entry */
+  logRecord('Game entry by ' + user.username + ' : UID ' + user.uid) // syslog
+  resolve(true)
+})
+
+var doTalker = vars => new Promise((resolve, reject) => {
+  console.log('TALKER(' + JSON.stringify(vars) + ')')
+  resolve(true)
 })
 
 module.exports = {
@@ -212,6 +295,26 @@ module.exports = {
     }).catch(error => {
       reject(error)
       // user = getkbd().slice(0, 15)
+    })
+  }),
+  /* list the message of the day */
+  motd: vars => new Promise((resolve, reject) => {
+    listfl(filenames.MOTD).then(response => {
+      resolve(response)
+    }).catch(error => {
+      resolve(error)
+    })
+  }),
+  // Requests
+  talker: vars => new Promise((resolve, reject) => {
+    console.log(vars)
+    Promise.all([
+      logEnter(vars.user),
+      doTalker(vars.user)
+    ]).then(response => {
+      resolve(response)
+    }).catch(error => {
+      reject(error)
     })
   })
 }

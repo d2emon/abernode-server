@@ -45,4 +45,28 @@ router.post('/login', (req, res, next) => {
   })
 })
 
+router.get('/motd', (req, res, next) => {
+  utils.motd().then(response => {
+    res.setHeader('Content-Type', 'application/json')
+    res.send(JSON.stringify(response))
+  }).catch(error => {
+    console.log(error)
+    res.status(500).send(JSON.stringify({
+      error: error
+    }))
+  })
+})
+
+router.post('/main', (req, res, next) => {
+  utils.talker(req.body).then(response => {
+    res.setHeader('Content-Type', 'application/json')
+    res.send(JSON.stringify(response))
+  }).catch(error => {
+    console.log(error)
+    res.status(500).send(JSON.stringify({
+      error: error
+    }))
+  })
+})
+
 module.exports = router
