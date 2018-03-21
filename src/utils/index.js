@@ -4,7 +4,6 @@ const file = require('../file')
 const filenames = require('../file/filenames')
 const config = require('../config')
 
-function any (ch, str) { return false }
 function scan (input, start, skips, stop) { return input }
 function validname (name) { return true }
 function logscan (uid, block) { return false }
@@ -117,7 +116,7 @@ var testUsername = user => new Promise((resolve, reject) => {
     })
     return
   }
-  if (any('.', user.username)) {
+  if (user.username.indexOf('.') >= 0) {
     reject({
       isNew: false,
       uid: user.uid,
@@ -187,7 +186,7 @@ var testPassword = user => new Promise((resolve, reject) => {
   })
   */
 
-  if (any('.', user.password)) {
+  if (user.password.indexOf('.') >= 0) {
     reject({
       isNew: newUser,
       uid: user.uid,
