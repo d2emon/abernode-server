@@ -26,7 +26,46 @@ router.get('/stats', (req, res, next) => {
     console.log(error)
     // reject(error)
     res.status(403).send(JSON.stringify({
-      error: error
+      error: error.message
+    }))
+  })
+})
+
+router.get('/user', [
+  check('username')
+    .exists()
+    .trim()
+    .isLength({ min: 3, max: 15 })
+    /**
+     * Check for legality of names
+     */
+    .matches(/^[a-z]*$/).withMessage('Illegal characters in user name')
+    .custom(value => {
+      if (!utils.validname(value)) throw new Error('Bye Bye')
+      return true
+    })
+], (req, res, next) => {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.mapped() })
+  }
+
+  const user = matchedData(req)
+  console.log('USER IS ' + JSON.stringify(user.username))
+  // createUser(user).then(user => res.json(user));
+
+  // user.isNew = true
+  console.log(user)
+  Promise.all([
+    utils.testhost(req.hostname),
+    utils.finduser(user)
+  ]).then(response => {
+    console.log(response)
+    res.json({ user: response[1] })
+  }).catch(error => {
+    // res.status(403).send(JSON.stringify({ errors: error }))
+    res.status(403).send(JSON.stringify({
+      errors: { error: { msg: error.message } }
     }))
   })
 })
@@ -79,9 +118,7 @@ router.post('/login', [
     console.log(response)
     res.json(response[1])
   }).catch(error => {
-    console.log(error)
-    // reject(error)
-    res.status(403).send(JSON.stringify(error))
+    res.status(403).send(JSON.stringify({ errors: error }))
   })
 })
 
@@ -90,9 +127,8 @@ router.get('/motd', (req, res, next) => {
     res.setHeader('Content-Type', 'application/json')
     res.send(JSON.stringify(response))
   }).catch(error => {
-    console.log(error)
     res.status(500).send(JSON.stringify({
-      error: error
+      error: error.message
     }))
   })
 })
@@ -102,9 +138,8 @@ router.post('/main', (req, res, next) => {
     res.setHeader('Content-Type', 'application/json')
     res.send(JSON.stringify(response))
   }).catch(error => {
-    console.log(error)
     res.status(500).send(JSON.stringify({
-      error: error
+      error: error.message
     }))
   })
 })

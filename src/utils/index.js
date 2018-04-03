@@ -44,6 +44,17 @@ var chknolog = vars => new Promise((resolve, reject) => {
   else resolve(true)
 })
 
+var testhost = host => new Promise((resolve, reject) => {
+  Promise.all([
+    correctHost(host),
+    chknolog()
+  ]).then(response => {
+    resolve(response)
+  }).catch(error => {
+    reject(error)
+  })
+})
+
 /* Check to see if UID in banned list */
 var chkbnid = user => new Promise((resolve, reject) => {
   config.BANNED.forEach(item => {
@@ -56,17 +67,20 @@ var chkbnid = user => new Promise((resolve, reject) => {
   resolve(user)
 })
 
+function openPfl () {
+  if (!config.PFL) throw new Error('No persona file')
+}
 
 var loadUser = user => new Promise((resolve, reject) => {
-  if (!config.PFL) throw new Error('No persona file')
+  console.log('USERNAME IS ' + JSON.stringify(user.username))
+
+  openPfl()
   config.PFL.forEach(block => {
     if (block.username.toLowerCase() == user.username.toLowerCase()) {
-      block.isNew = false
       resolve(block)
     }
   })
-  user.isNew = true
-  resolve(user)
+  resolve(null)
 })
 
 var saveUser = user => new Promise((resolve, reject) => {
@@ -76,20 +90,18 @@ var saveUser = user => new Promise((resolve, reject) => {
     return
   }
 
-  let userdata = {
+  let userdata = saveUserdata ({
     username: user.username,
     password: user.password,
     v3: null,
     v4: null,
     v5: null,
-    v6: null
-  }
-  if (!config.PFL) throw new Error('No persona file')
+    v6: null,
+    saved: true
+  })
+  openPfl()
   config.PFL.push(userdata)
-
-  userdata.isNew = user.isNew
-  userdata.saved = true
-  resolve(userdata)
+  resolve (userdata)
 })
 
 /* Main login code */
@@ -101,12 +113,13 @@ var login = user => new Promise((resolve, reject) => {
   loadUser(user).then(response => {
     console.log(response)
     console.log(config)
-    if (response.isNew) return saveUser(response)
-    else return response
+    if (!response) return saveUser(user)
+    if (user.password == response.password) return response
+    reject({ password: { msg: 'Incorrect password!' } })
   }).then(response => {
     resolve(response)
   }).catch(error => {
-    reject(error)
+    reject({ error: error })
   })
 })
 
@@ -126,21 +139,13 @@ var doTalker = vars => new Promise((resolve, reject) => {
   resolve(true)
 })
 
+
 module.exports = {
   chkbnid,
   validname: name => {
     return true
   },
-  testhost: host => new Promise((resolve, reject) => {
-    Promise.all([
-      correctHost(host),
-      chknolog()
-    ]).then(response => {
-      resolve(response)
-    }).catch(error => {
-      reject(error)
-    })
-  }),
+  testhost,
   created_at: vars => new Promise((resolve, reject) => {
     file.stat(filenames.EXE).then(response => {
       resolve(response.atime)
@@ -160,6 +165,7 @@ module.exports = {
       resolve(false)
     })
   }),
+  finduser: loadUser,
   /* Does all the login stuff */
   /* The whole login system is called from this */
   login,
