@@ -8,17 +8,29 @@
   "license": "GPL-3.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "lint": "tslint -c tslint.json -p tsconfig.json --fix",
+    "prebuild": "npm run lint",
+    "build": "tsc",
+    "prestart": "npm run build",
+    "start": "node ./dist/run.js",
+    "debug": "node --debug-brk ./dist/run.js",
+    "serve": "nodemon --watch src -e ts,ejs --exec npm run start",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "body-parser": "~1.18.2",
-    "chalk": "^2.3.2",
-    "cookie-parser": "~1.4.3",
-    "debug": "~2.6.9",
-    "express": "~4.15.5",
-    "express-validator": "^5.0.3",
-    "jade": "~1.11.0",
-    "morgan": "~1.9.0",
-    "serve-favicon": "~2.4.5"
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "morgan": "^1.10.0",
+    "winston": "^3.3.3"
+  },
+  "devDependencies": {
+    "@types/debug": "^4.1.5",
+    "@types/express": "^4.17.11",
+    "@types/morgan": "^1.9.2",
+    "@types/node": "^14.14.37",
+    "@types/winston": "^2.4.4",
+    "nodemon": "^2.0.7",
+    "tslint": "^6.1.3",
+    "typescript": "^4.2.4"
   }
 }
