@@ -1,25 +1,11 @@
 import {
-    encode,
-} from './crypt';
-import {
     Stream
 } from './stream';
 import {
-    getPassword,
     getUser,
     getUserId,
 } from './user';
 
-const SALT = 'XX';
-
-// lowercase(str) => str.toLowerCase()
-// uppercase(str) => str.toUpperCase()
-// trim(str) => str.trim()
-// any(ch, str) => str.indexOf(ch)
-
-export const getEncodedPassword = async (): Promise<string> => getPassword()
-    .then(value => encode(value, SALT));
-export const parseUsername = (input: string): string => input.trim();
 export const parseUserData = (input: string) => {
     const data = input.split('.');
     return {
@@ -35,9 +21,6 @@ export const parseObjectData = (input: string) => {
         (data.length > 2) && data[2],
     ];
 }
-
-// addchar(str, ch) => str + ch
-// numarg(str) => parseInt(str, 10)
 
 export const listStream = async (name: string, dest: Stream): Promise<void> => {
     const a: Stream = new Stream(name, 'r');
