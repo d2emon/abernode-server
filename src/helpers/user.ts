@@ -8,4 +8,3 @@ export const getUser = (userId: string): UserData => ({
     name: '',
 });
 export const getUserId = (): string => '';
-export const getPassword = (): Promise<string> => Promise.resolve('');

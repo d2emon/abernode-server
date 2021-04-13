@@ -1,9 +1,5 @@
 import express from 'express';
 import {
-    syslog,
-    talker,
-} from '../helpers/unprocessed/dummy';
-import {
     getCreatedTime,
     getStartedAt,
 } from '../helpers/time';
@@ -37,26 +33,3 @@ export const checkUser = async (req: express.Request, res: express.Response) => 
         username: user && user.username,
     });
 };
-
-/**
- * Login routine
- * @param req
- * @param res
- */
-export const afterLogin = async (req: express.Request, res: express.Response) => {
-    const {
-        userId,
-        username,
-    } = req.params;
-    try{
-        // Log entry
-        await syslog(`Game entry by ${username} : UID ${userId}`);
-        // Run system
-        await talker(username, !username);
-        return res.json({
-            exitMessage: 'Bye Bye'
-        });
-    } catch (error) {
-        return res.json({ error })
-    }
-}

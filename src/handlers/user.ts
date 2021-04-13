@@ -1,8 +1,9 @@
 import express from 'express';
+import log from '../helpers/log';
 import User from '../models/user';
 import MessageOfTheDay from '../models/messageOfTheDay';
 
-const newUser = async (req: express.Request, res: express.Response) => {
+export const newUser = async (req: express.Request, res: express.Response) => {
     const {
         username,
         password,
@@ -24,10 +25,10 @@ const newUser = async (req: express.Request, res: express.Response) => {
  * The whole login system is called from this
  * @param req
  * @param res
- * @param next
  */
-const login = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+export const login = async (req: express.Request, res: express.Response) => {
     const {
+        userId,
         username,
         password,
     } = req.params;
@@ -43,6 +44,8 @@ const login = async (req: express.Request, res: express.Response, next: express.
     const message = new MessageOfTheDay();
     await message.load();
 
+    log.info(`Game entry by ${username} : UID ${userId}`);
+
     return res.json({
         result: true,
         messageOfTheDay: message.getMessage(),
@@ -50,6 +53,7 @@ const login = async (req: express.Request, res: express.Response, next: express.
 }
 
 export const showUser = async (req: express.Request, res: express.Response) => {
+    // Admin only
     const {
         username,
     } = req.params;
@@ -67,6 +71,7 @@ export const showUser = async (req: express.Request, res: express.Response) => {
 }
 
 export const deleteUser = async (req: express.Request, res: express.Response) => {
+    // Admin only
     const {
         username,
     } = req.params;
@@ -79,6 +84,7 @@ export const deleteUser = async (req: express.Request, res: express.Response) =>
 }
 
 export const editUser = async (req: express.Request, res: express.Response) => {
+    // Admin only
     const {
         userId,
         username,
