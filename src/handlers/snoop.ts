@@ -10,17 +10,20 @@ import LogStream from "../models/logStream";
 import {Player} from "../models/player";
 
 const brkword = async (): Promise<any> => Promise.resolve(null);
-const fpbn = async (name: string): Promise<any> => Promise.resolve(null);
+
+interface User {
+    userId: string,
+    isAdmin: boolean; // my_lev >= 10
+    isBlind: boolean;
+    isSuperuser: boolean; // my_lev >= 10000
+    name: string,
+    playerId: number,
+}
 
 interface RequestOptions {
-    userId: string;
     adminUserId: string;
-    isAdmin: boolean;
-    isSuperuser: boolean;
     snoopTarget: number;
-    user: {
-        name: string,
-    },
+    user: User,
     wordbuf: string;
     // Session Vars
     isLogging: boolean;
@@ -44,26 +47,25 @@ const stopLog = async (): Promise<GameResponse> => {
 
 const startSnoop = async (
     world: World,
-    senderUserId: string,
-    receiver: string,
-    isSuperuser: boolean,
-): Promise<null | Player> => {
-    const receiverId = await fpbn(receiver);
-    if (!receiverId) {
+    user: User,
+    name: string,
+): Promise<Player | null> => {
+    // FIXME
+    const snooper = await world.findPlayerByName(user.name);
+    const snooped = await world.findVisiblePlayerByName(name, snooper, user.isBlind);
+    if (!snooped) {
         throw new Error('Who is that?');
     }
 
-    const target = await world.getPlayer(receiverId);
-    if ((!isSuperuser && (target.level >= 10)) || target.flags.disableSnoop) {
+    if ((!user.isSuperuser && (snooped.level >= 10)) || snooped.flags.disableSnoop) {
         throw new Error('Your magical vision is obscured');
     }
 
     await Promise.all([
-        // addMessage(`Started to snoop on ${target.name}`)
-        Snoop.start(senderUserId),
-        sendStartSnoopEvent(senderUserId, target.name),
+        Snoop.start(user.userId),
+        sendStartSnoopEvent(user.userId, snooped.name),
     ]);
-    return target;
+    return snooped;
 }
 
 const stopSnoop = async (sender: string, receiver: Player): Promise<void> => {
@@ -71,7 +73,7 @@ const stopSnoop = async (sender: string, receiver: Player): Promise<void> => {
 };
 
 export const actionLog = async (options: RequestOptions): Promise<GameResponse> => {
-    if (options.userId !== options.adminUserId) {
+    if (options.user.userId !== options.adminUserId) {
         return errorResponse('Not allowed from this ID');
     }
     return options.isLogging
@@ -81,15 +83,13 @@ export const actionLog = async (options: RequestOptions): Promise<GameResponse> 
 
 export const actionSnoop = async (options: RequestOptions): Promise<GameResponse> => {
     const {
-        isAdmin, // my_lev >= 10
-        isSuperuser, // my_lev >= 10000
         snoopTarget,
         user,
         wordbuf,
     } = options;
     const world = await World.load();
 
-    if (!isAdmin) {
+    if (!user.isAdmin) {
         return errorResponse('Ho hum, the weather is nice isn\'t it');
     }
 
@@ -106,9 +106,9 @@ export const actionSnoop = async (options: RequestOptions): Promise<GameResponse
     }
 
     try {
-        const snoopedPlayer = await startSnoop(world, user.name, wordbuf, isSuperuser);
+        const snoopedPlayer = await startSnoop(world, user, wordbuf);
+        messages.push(`Started to snoop on ${snoopedPlayer.name}`);
         return successResponse(messages.join('\n'));
-        // snoopedPlayer
     } catch (e) {
         // messages
         return errorResponse(e);

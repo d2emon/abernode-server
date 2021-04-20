@@ -1,4 +1,4 @@
-const isdark = (): boolean => false;
+import {userCanSee} from '../helpers/unprocessed/weather';
 
 export interface PlayerFlags {
     disableSnoop: boolean; // 6
@@ -18,20 +18,19 @@ export interface Player {
     isMobile: boolean; // playerId > 15
     gender: string;
     // IT: player.isMobile && (['riatha', 'shazareth'].indexOf(player.name.toLowerCase()) >= 0)
+    helping: number;
+    strength: number;
+    weapon: number;
 }
 
-export const canSeePlayer = (user: Player | null, player: Player | null, isBlind: boolean): boolean => {
+export const canSeePlayer = async (user: Player | null, player: Player | null, isBlind: boolean): Promise<boolean> => {
     if (!user || !player) {
         return true;
     }
     if (player.playerId === user.playerId) {
         return true;
     }
-    if (isBlind) {
-        return false;
-    }
-    if ((user.locationId === player.locationId) && isdark()) {
-        return false;
-    }
-    return (user.level >= player.visible);
+
+    const canSee = !isBlind && await userCanSee(user);
+    return canSee && (user.level >= player.visible);
 }

@@ -2,13 +2,22 @@ import {User} from './unprocessed/dummy';
 import World from './unprocessed/opensys';
 import {handleEvents, setLocationId} from './unprocessed/tk';
 import {visual} from "./messageProcessor";
+import {GENDER_MALE, PlayerFlags} from "../models/player";
+import {sendAdminMessage, sendGlobalMessage} from "./events";
 
 // TODO: Remove them
-const setPlayer = async (world: World, playerId: number, player: any) => Promise.resolve();
 const gamecom = async (action: string): Promise<void> => {};
 const initme = async () => Promise.resolve();
-const sendsys = async (sender: string, receiver: string, code: number, locationId: number, payload: any) => Promise.resolve();
 const randperc = () => 0;
+
+interface MyData {
+    brief: boolean;
+    my_gender: string;
+    my_lev: number;
+    my_sex: PlayerFlags;
+    my_str: number;
+    newEvents: boolean;
+}
 
 const MODE_SPECIAL = 'MODE_SPECIAL';
 const MODE_GAME = 'MODE_GAME';
@@ -20,10 +29,13 @@ export interface ActionResponse {
 }
 
 const gameStart = async (user: User): Promise<ActionResponse> => {
-    const my = {
+    const my: MyData = {
         brief: false,
+        my_gender: GENDER_MALE,
         my_lev: 0,
-        my_sex: 0,
+        my_sex: {
+            disableSnoop: false,
+        },
         my_str: 0,
         newEvents: false,
     }
@@ -33,23 +45,25 @@ const gameStart = async (user: User): Promise<ActionResponse> => {
     await initme();
 
     const world = await World.load();
-    await setPlayer(
-        world,
+    await world.setPlayer(
         user.playerId,
         {
+            playerId: user.playerId,
             flags: my.my_sex,
+            gender: my.my_gender, // TODO: Calculate
             helping: null,
+            isMobile: false, // TODO: Calculate
             level: my.my_lev,
+            locationId: 0,
+            name: '',
             strength: my.my_str,
             visible: (my.my_lev < 10000) ? 0 : 10000,
             weapon: null,
         },
     );
 
-    await sendsys(
+    await sendAdminMessage(
         user.name,
-        user.name,
-        -10113,
         user.locationId,
         visual(user.name, `[ ${user.name} has entered the game ]\n`),
     );
@@ -58,13 +72,11 @@ const gameStart = async (user: User): Promise<ActionResponse> => {
     user.locationId = (randperc() > 50) ? -5 : -183;
     await setLocationId(user, user.locationId, my.brief);
 
-    await sendsys(
+    await sendGlobalMessage(
         user.name,
-        user.name,
-        -10000,
         user.locationId,
         visual(user.name, `${user.name} has entered the game\n`),
-    );
+    )
 
     await world.save();
 

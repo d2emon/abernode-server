@@ -22,10 +22,10 @@ export const parseObjectData = (input: string) => {
     ];
 }
 
-export const listStream = async (name: string, dest: Stream): Promise<void> => {
+export const listStream = async (name: string): Promise<string[]> => {
     const a: Stream = new Stream(name, 'r');
     await a.load(() => { throw new Error(`[Cannot find file -> ${name}]`) });
-    await a.getStrings(127, dest.addValue);
+    return await a.getStrings(127, s => s);
 }
 export const readData = (src: Stream, pos: number, len: number): Promise<any> => src
     .setPos(pos * 64 * 4)

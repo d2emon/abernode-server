@@ -2,15 +2,29 @@ interface ItemData {
     name: string;
 }
 
+export const ITEM_IS_LIGHT = 13;
+
 class Item implements ItemData {
+    itemId: number;
+
     name: string;
+
+    carryFlag: number;
+
+    flags: boolean[];
+
+    locationId: number;
 
     private static NOBS = 0;
 
     private static objects: Item[] = [];
 
     constructor() {
+        this.itemId = 0;
         this.name = '';
+        this.flags = [];
+        this.carryFlag = 0;
+        this.locationId = 0;
     }
 
     static async getItem(itemId: number): Promise<Item> {
