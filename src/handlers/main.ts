@@ -16,6 +16,8 @@ import {
     successResponse,
 } from '../helpers/responses';
 import {specialAction} from "../helpers/actions";
+import UserStream, {UserData} from "../models/userData";
+import {GENDER_FEMALE, GENDER_MALE, PlayerFlags} from "../models/player";
 
 const loose = async (
     message?: string,
@@ -124,6 +126,21 @@ export const start = async (req: express.Request, res: express.Response) => {
         ];
         events.forEach(m => messages.push(m));
 
+        const data = await UserStream.findUser(user.name);
+        if (!data) {
+            messages.push('');
+            messages.push('Sex (M/F) : ');
+            return res.json(successResponse(
+                messages.join('\n'),
+                {
+                    // deactivate: false,
+                    // dirty: false,
+                    keyboard: true,
+                    // reprint: true,
+                },
+            ));
+        }
+
         user.eventId = EVENT_START;
         const actionResult = await specialAction('.g', user);
         actionResult.messages.forEach(m => messages.push(m));
@@ -146,6 +163,44 @@ export const start = async (req: express.Request, res: express.Response) => {
     } catch (e) {
         return res.json(errorResponse(e))
     }
+};
+
+export const setGender = async (req: express.Request, res: express.Response) => {
+    const {
+        name,
+    } = req.params;
+    const genderId = req.params.gender.toLowerCase();
+
+    let gender: string;
+    if (genderId === 'm') {
+        gender = GENDER_MALE;
+    } else if (genderId === 'f') {
+        gender = GENDER_FEMALE;
+    } else {
+        return res.json(errorResponse('M or F'));
+    }
+
+    await UserStream.saveUser({
+        name,
+        score: 0,
+        strength: 40,
+        level: 1,
+        flags: {
+            disableSnoop: false,
+            gender,
+        },
+    });
+
+    return res.json(successResponse(
+        'Creating character....\n',
+        {
+            // deactivate: false,
+            // dirty: false,
+            keyboard: true,
+            // reprint: true,
+        },
+        // Redirect to main
+    ));
 };
 
 export const postSignal = async (req: express.Request, res: express.Response) => {

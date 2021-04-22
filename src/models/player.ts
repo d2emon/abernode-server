@@ -2,6 +2,7 @@ import {userCanSee} from '../helpers/unprocessed/weather';
 
 export interface PlayerFlags {
     disableSnoop: boolean; // 6
+    gender: string;
 }
 
 export const GENDER_NEUTRAL = 'NEUTRAL';

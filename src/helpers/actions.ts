@@ -7,15 +7,10 @@ import {sendAdminMessage, sendGlobalMessage} from "./events";
 
 // TODO: Remove them
 const gamecom = async (action: string): Promise<void> => {};
-const initme = async () => Promise.resolve();
 const randperc = () => 0;
 
 interface MyData {
     brief: boolean;
-    my_gender: string;
-    my_lev: number;
-    my_sex: PlayerFlags;
-    my_str: number;
     newEvents: boolean;
 }
 
@@ -31,33 +26,26 @@ export interface ActionResponse {
 const gameStart = async (user: User): Promise<ActionResponse> => {
     const my: MyData = {
         brief: false,
-        my_gender: GENDER_MALE,
-        my_lev: 0,
-        my_sex: {
-            disableSnoop: false,
-        },
-        my_str: 0,
         newEvents: false,
     }
 
     user.mode = MODE_GAME;
     user.locationId = -5;
-    await initme();
 
     const world = await World.load();
     await world.setPlayer(
         user.playerId,
         {
             playerId: user.playerId,
-            flags: my.my_sex,
-            gender: my.my_gender, // TODO: Calculate
+            flags: user.data.flags,
+            gender: user.data.flags.gender, // TODO: Calculate
             helping: null,
             isMobile: false, // TODO: Calculate
-            level: my.my_lev,
+            level: user.data.level,
             locationId: 0,
             name: '',
-            strength: my.my_str,
-            visible: (my.my_lev < 10000) ? 0 : 10000,
+            strength: user.data.strength,
+            visible: (user.data.level < 10000) ? 0 : 10000,
             weapon: null,
         },
     );
