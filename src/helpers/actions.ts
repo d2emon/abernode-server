@@ -1,21 +1,21 @@
-import {User} from './unprocessed/dummy';
+import {EVENT_START, User} from './unprocessed/dummy';
 import World from './unprocessed/opensys';
 import {handleEvents, setLocationId} from './unprocessed/tk';
 import {visual} from "./messageProcessor";
-import {GENDER_MALE, PlayerFlags} from "../models/player";
+import {GENDER_NEUTRAL, Player} from "../models/player";
 import {sendAdminMessage, sendGlobalMessage} from "./events";
+import randomizer from "./randomizer";
 
 // TODO: Remove them
 const gamecom = async (action: string): Promise<void> => {};
-const randperc = () => 0;
 
 interface MyData {
     brief: boolean;
     newEvents: boolean;
 }
 
-const MODE_SPECIAL = 'MODE_SPECIAL';
-const MODE_GAME = 'MODE_GAME';
+export const MODE_SPECIAL = 'MODE_SPECIAL';
+export const MODE_GAME = 'MODE_GAME';
 
 export interface ActionResponse {
     messages: string[];
@@ -29,35 +29,31 @@ const gameStart = async (user: User): Promise<ActionResponse> => {
         newEvents: false,
     }
 
-    user.mode = MODE_GAME;
-    user.locationId = -5;
+    const player: Player = new Player(user.playerId, user.name);
+    // player.locationId = 0;
+    // player.eventId = EVENT_START;
+    player.strength = user.data.strength; // -1
+    player.visibility = (user.data.level < 10000) ? 0 : 10000; // 0
+    player.flags = user.data.flags;
+    player.level = user.data.level; // 1
+    // player.weaponId = null;
+    // player.helping = null;
 
     const world = await World.load();
-    await world.setPlayer(
-        user.playerId,
-        {
-            playerId: user.playerId,
-            flags: user.data.flags,
-            gender: user.data.flags.gender, // TODO: Calculate
-            helping: null,
-            isMobile: false, // TODO: Calculate
-            level: user.data.level,
-            locationId: 0,
-            name: '',
-            strength: user.data.strength,
-            visible: (user.data.level < 10000) ? 0 : 10000,
-            weapon: null,
-        },
-    );
+    await world.setPlayer(user.playerId, player);
+
+    user.eventId = EVENT_START;
+    user.locationId = -5;
+    user.mode = MODE_GAME;
 
     await sendAdminMessage(
         user.name,
-        user.locationId,
+        0,
         visual(user.name, `[ ${user.name} has entered the game ]\n`),
     );
 
     const messages = await handleEvents(user);
-    user.locationId = (randperc() > 50) ? -5 : -183;
+    user.locationId = (randomizer() > 50) ? -5 : -183;
     await setLocationId(user, user.locationId, my.brief);
 
     await sendGlobalMessage(

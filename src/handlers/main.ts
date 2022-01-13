@@ -8,16 +8,19 @@ import {
     onTimeout,
 } from '../helpers/unprocessed/dummy';
 import World from '../helpers/unprocessed/opensys';
-import {addPlayer, handleEvents} from '../helpers/unprocessed/tk';
+import {handleEvents} from '../helpers/unprocessed/tk';
 import {
     GameOptions,
     GameResponse,
     errorResponse,
     successResponse,
 } from '../helpers/responses';
-import {specialAction} from "../helpers/actions";
+import {MODE_SPECIAL, specialAction} from "../helpers/actions";
 import UserStream, {UserData} from "../models/userData";
-import {GENDER_FEMALE, GENDER_MALE, PlayerFlags} from "../models/player";
+import {GENDER_FEMALE, GENDER_MALE, GENDER_NEUTRAL} from "../models/player";
+import log from "../helpers/log";
+import Messages from "../models/messages";
+import { User } from "../helpers/unprocessed/dummy";
 
 const loose = async (
     message?: string,
@@ -117,21 +120,16 @@ export const start = async (req: express.Request, res: express.Response) => {
         return res.json(errorResponse('Args!'));
     }
     try {
-        const user = await addPlayer(userId, (name === 'Phantom') ? `The ${name}` : name);
-        const events = await handleEvents(user, true);
+        log.info(`GAME ENTRY: ${name}[${userId}]`);
 
-        const messages = [
-            'Entering Game ....',
-            `Hello ${user.name}`,
-        ];
-        events.forEach(m => messages.push(m));
+        const messagesCollection = new Messages(userId);
+        await messagesCollection.resetMessages();
 
-        const data = await UserStream.findUser(user.name);
+        const data = await UserStream.findUser(name);
+
         if (!data) {
-            messages.push('');
-            messages.push('Sex (M/F) : ');
             return res.json(successResponse(
-                messages.join('\n'),
+                '\nSex (M/F) : ',
                 {
                     // deactivate: false,
                     // dirty: false,
@@ -141,7 +139,27 @@ export const start = async (req: express.Request, res: express.Response) => {
             ));
         }
 
-        user.eventId = EVENT_START;
+        const world = await World.load();
+        const player = await world.addPlayer(userId, (name === 'Phantom') ? `The ${name}` : name);
+        const user: User = {
+            userId,
+            playerId: player.playerId,
+            active: false,
+            eventId: EVENT_START,
+            locationId: 0,
+            mode: MODE_SPECIAL,
+            name: player.name,
+            data,
+        };
+
+        const messages = [
+            'Entering Game ....',
+            `Hello ${user.name}`,
+        ];
+
+        const events = await handleEvents(user, true);
+        events.forEach(m => messages.push(m));
+
         const actionResult = await specialAction('.g', user);
         actionResult.messages.forEach(m => messages.push(m));
 
@@ -186,8 +204,13 @@ export const setGender = async (req: express.Request, res: express.Response) => 
         strength: 40,
         level: 1,
         flags: {
-            disableSnoop: false,
             gender,
+            disableExorcise: false,
+            canChangeFlags: false,
+            canEdit: false,
+            isDebugger: false,
+            canUsePatch: false,
+            disableSnoop: false,
         },
     });
 
